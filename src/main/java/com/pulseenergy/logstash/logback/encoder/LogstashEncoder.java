@@ -29,14 +29,11 @@ import ch.qos.logback.core.CoreConstants;
 import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.util.CachingDateFormatter;
 
-import com.fasterxml.jackson.core.JsonGenerator.Feature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.grack.nanojson.JsonAppendableWriter;
+import com.grack.nanojson.JsonWriter;
 
 public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     
-    private static final ObjectMapper MAPPER = new ObjectMapper().configure(Feature.ESCAPE_NON_ASCII, true);
     private static final CachingDateFormatter ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS = new CachingDateFormatter("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private static final StackTraceElement DEFAULT_CALLER_DATA = new StackTraceElement("", "", "", 0);
     
@@ -53,62 +50,65 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     @Override
     public void doEncode(ILoggingEvent event) throws IOException {
 
-        ObjectNode eventNode = MAPPER.createObjectNode();
-        eventNode.put("@timestamp", ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS.format(event.getTimeStamp()));
-        eventNode.put("@message", event.getFormattedMessage());
-        eventNode.put("@fields", createFields(event));
-        if (includeTags) {
-            eventNode.put("@tags", createTags(event));
-        }
+        JsonAppendableWriter writer = JsonWriter.on(outputStream);
 
-        outputStream.write(MAPPER.writeValueAsBytes(eventNode));
+        writer.object();
+        writer.value("@timestamp", ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS.format(event.getTimeStamp()));
+        writer.value("@message", event.getFormattedMessage());
+        writer.object("@fields");
+        writeFields(writer, event);
+        writer.end();
+
+        if (includeTags) {
+            writer.array("@tags");
+            writeTags(writer, event);
+            writer.end();
+        }
+        writer.end();
+        writer.done();
+
         outputStream.write(CoreConstants.LINE_SEPARATOR.getBytes(Charset.defaultCharset()));
 
         if (immediateFlush) {
             outputStream.flush();
         }
-        
+
     }
-    
-    private ObjectNode createFields(ILoggingEvent event) {
-        
-        ObjectNode fieldsNode = MAPPER.createObjectNode();
-        fieldsNode.put("logger_name", event.getLoggerName());
-        fieldsNode.put("thread_name", event.getThreadName());
-        fieldsNode.put("level", event.getLevel().toString());
-        fieldsNode.put("level_value", event.getLevel().toInt());
-        
+
+    private void writeFields(JsonAppendableWriter writer, ILoggingEvent event) throws IOException {
+
+        writer.value("logger_name", event.getLoggerName());
+        writer.value("thread_name", event.getThreadName());
+        writer.value("level", event.getLevel().toString());
+        writer.value("level_value", event.getLevel().toInt());
+
         if (includeCallerInfo) {
             StackTraceElement callerData = extractCallerData(event);
-            fieldsNode.put("caller_class_name", callerData.getClassName());
-            fieldsNode.put("caller_method_name", callerData.getMethodName());
-            fieldsNode.put("caller_file_name", callerData.getFileName());
-            fieldsNode.put("caller_line_number", callerData.getLineNumber());
+            writer.value("caller_class_name", callerData.getClassName());
+            writer.value("caller_method_name", callerData.getMethodName());
+            writer.value("caller_file_name", callerData.getFileName());
+            writer.value("caller_line_number", callerData.getLineNumber());
         }
-        
+
         IThrowableProxy throwableProxy = event.getThrowableProxy();
         if (throwableProxy != null) {
-            fieldsNode.put("stack_trace", ThrowableProxyUtil.asString(throwableProxy));
+            writer.value("stack_trace", ThrowableProxyUtil.asString(throwableProxy));
         }
-        
+
         Context context = getContext();
         if (context != null) {
-            addPropertiesAsFields(fieldsNode, context.getCopyOfPropertyMap());
+            writePropertiesAsFields(writer, context.getCopyOfPropertyMap());
         }
-        addPropertiesAsFields(fieldsNode, event.getMDCPropertyMap());
-        
-        return fieldsNode;
-        
+        writePropertiesAsFields(writer, event.getMDCPropertyMap());
+
     }
     
-    private ArrayNode createTags(ILoggingEvent event) {
-        ArrayNode node = null;
+    private void writeTags(JsonAppendableWriter writer, ILoggingEvent event) throws IOException {
         final Marker marker = event.getMarker();
-        
+
         if (marker != null) {
-            node = MAPPER.createArrayNode();
-            node.add(marker.getName());
-            
+            writer.value(marker.getName());
+
             if (marker.hasReferences()) {
                 final Iterator<?> i = event.getMarker().iterator();
                 
@@ -116,20 +116,18 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
                     Marker next = (Marker) i.next();
                     
                     // attached markers will never be null as provided by the MarkerFactory.
-                    node.add(next.getName());
+                    writer.value(next.getName());
                 }
             }
         }
-        
-        return node;
     }
     
-    private void addPropertiesAsFields(final ObjectNode fieldsNode, final Map<String, String> properties) {
+    private void writePropertiesAsFields(final JsonAppendableWriter writer, final Map<String, String> properties) throws IOException {
         if (properties != null) {
             for (Entry<String, String> entry : properties.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
-                fieldsNode.put(key, value);
+                writer.value(key, value);
             }
         }
     }
