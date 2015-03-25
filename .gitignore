@@ -4,6 +4,7 @@
 
 META-INF/
 target/
+dependency-reduced-pom.xml
 
 .idea
 *.iml

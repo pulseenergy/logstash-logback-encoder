@@ -8,7 +8,7 @@
 
     <name>Logstash Logback Encoder</name>
     <description>Logback encoder which will output events as Logstash-compatible JSON</description>
-    <url>https://github.com/logstash/logstash-logback-encoder</url>
+    <url>https://github.com/pulseenergy/logstash-logback-encoder</url>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>
@@ -17,9 +17,20 @@
     </parent>
 
     <scm>
-        <connection>scm:git:git@github.com:logstash/logstash-logback-encoder.git</connection>
-        <developerConnection>scm:git:git@github.com:logstash/logstash-logback-encoder.git</developerConnection>
+        <connection>scm:git:git@github.com:pulseenergy/logstash-logback-encoder.git</connection>
+        <developerConnection>scm:git:git@github.com:pulseenergy/logstash-logback-encoder.git</developerConnection>
     </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <url>https://nexus.pulseenergy.com/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus</id>
+            <url>https://nexus.pulseenergy.com/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <prerequisites>
         <maven>2.2.1</maven>
