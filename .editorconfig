@@ -1,0 +1,7 @@
+# EditorConfig is awesome: http://EditorConfig.org
+[*.java]
+indent_style = space
+
+[*.xml]
+indent_style = space
+
