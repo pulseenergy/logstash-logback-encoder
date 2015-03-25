@@ -236,7 +236,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.0</version>
+                    <version>2.3</version>
                     <executions>
                         <execution>
                             <goals>
@@ -258,7 +258,6 @@
                                 <shadedPattern>${project.groupId}.encoder.com.grack.nanojson</shadedPattern>
                             </relocation>
                         </relocations>
-                        <shadedArtifactAttached>true</shadedArtifactAttached>
                     </configuration>
                 </plugin>
             </plugins>
