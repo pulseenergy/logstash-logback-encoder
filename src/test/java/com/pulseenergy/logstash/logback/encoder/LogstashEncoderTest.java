@@ -196,6 +196,8 @@ public class LogstashEncoderTest {
         Marker marker = MarkerFactory.getMarker("hoosh");
         ILoggingEvent event = mockBasicILoggingEvent(Level.INFO);
         when(event.getMarker()).thenReturn(marker);
+
+        encoder.setIncludeTags(true);
         
         encoder.doEncode(event);
         outputStream.close();
@@ -211,7 +213,9 @@ public class LogstashEncoderTest {
         marker.add(MarkerFactory.getMarker("knees"));
         ILoggingEvent event = mockBasicILoggingEvent(Level.INFO);
         when(event.getMarker()).thenReturn(marker);
-        
+
+        encoder.setIncludeTags(true);
+
         encoder.doEncode(event);
         outputStream.close();
 
@@ -224,7 +228,9 @@ public class LogstashEncoderTest {
     public void nullMarkerIsIgnored() throws Exception {
         ILoggingEvent event = mockBasicILoggingEvent(Level.INFO);
         when(event.getMarker()).thenReturn(null);
-        
+
+        encoder.setIncludeTags(true);
+
         encoder.doEncode(event);
         outputStream.close();
 

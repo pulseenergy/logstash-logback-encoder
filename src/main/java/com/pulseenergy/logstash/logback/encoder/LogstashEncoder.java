@@ -41,21 +41,25 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     private static final StackTraceElement DEFAULT_CALLER_DATA = new StackTraceElement("", "", "", 0);
     
     private boolean immediateFlush = true;
-    
+
     /**
      * If true, the caller information is included in the logged data.
      * Note: calculating the caller data is an expensive operation.
      */
     private boolean includeCallerInfo = true;
-    
+
+    private boolean includeTags = false;
+
     @Override
     public void doEncode(ILoggingEvent event) throws IOException {
-        
+
         ObjectNode eventNode = MAPPER.createObjectNode();
         eventNode.put("@timestamp", ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS.format(event.getTimeStamp()));
         eventNode.put("@message", event.getFormattedMessage());
         eventNode.put("@fields", createFields(event));
-        eventNode.put("@tags", createTags(event));
+        if (includeTags) {
+            eventNode.put("@tags", createTags(event));
+        }
 
         outputStream.write(MAPPER.writeValueAsBytes(eventNode));
         outputStream.write(CoreConstants.LINE_SEPARATOR.getBytes(Charset.defaultCharset()));
@@ -158,5 +162,12 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     public void setIncludeCallerInfo(boolean includeCallerInfo) {
         this.includeCallerInfo = includeCallerInfo;
     }
-    
+
+    public boolean isIncludeTags() {
+        return includeTags;
+    }
+
+    public void setIncludeTags(boolean includeTags) {
+        this.includeTags = includeTags;
+    }
 }
