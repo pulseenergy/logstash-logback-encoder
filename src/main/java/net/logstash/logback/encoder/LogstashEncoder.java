@@ -13,14 +13,12 @@
  */
 package net.logstash.logback.encoder;
 
-import static org.apache.commons.io.IOUtils.*;
-
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang.time.FastDateFormat;
 import org.slf4j.Marker;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -29,6 +27,7 @@ import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.Context;
 import ch.qos.logback.core.CoreConstants;
 import ch.qos.logback.core.encoder.EncoderBase;
+import ch.qos.logback.core.util.CachingDateFormatter;
 
 import com.fasterxml.jackson.core.JsonGenerator.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +37,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     
     private static final ObjectMapper MAPPER = new ObjectMapper().configure(Feature.ESCAPE_NON_ASCII, true);
-    private static final FastDateFormat ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
+    private static final CachingDateFormatter ISO_DATETIME_TIME_ZONE_FORMAT_WITH_MILLIS = new CachingDateFormatter("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private static final StackTraceElement DEFAULT_CALLER_DATA = new StackTraceElement("", "", "", 0);
     
     private boolean immediateFlush = true;
@@ -57,10 +56,10 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
         eventNode.put("@message", event.getFormattedMessage());
         eventNode.put("@fields", createFields(event));
         eventNode.put("@tags", createTags(event));
-        
-        write(MAPPER.writeValueAsBytes(eventNode), outputStream);
-        write(CoreConstants.LINE_SEPARATOR, outputStream);
-        
+
+        outputStream.write(MAPPER.writeValueAsBytes(eventNode));
+        outputStream.write(CoreConstants.LINE_SEPARATOR.getBytes(Charset.defaultCharset()));
+
         if (immediateFlush) {
             outputStream.flush();
         }
@@ -141,9 +140,9 @@ public class LogstashEncoder extends EncoderBase<ILoggingEvent> {
     
     @Override
     public void close() throws IOException {
-        write(LINE_SEPARATOR, outputStream);
+        outputStream.write(CoreConstants.LINE_SEPARATOR.getBytes(Charset.defaultCharset()));
     }
-    
+
     public boolean isImmediateFlush() {
         return immediateFlush;
     }
